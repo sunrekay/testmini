@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rutube Player - Telegram Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            line-height: 1.4;
+            padding: 0;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 100%;
+            padding: 12px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            margin-bottom: 16px;
+            position: sticky;
+            top: 0;
+            background: var(--tg-theme-bg-color, #ffffff);
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #FF4D00;
+        }
+
+        .logo svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+        }
+
+        .video-container {
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .video-player {
+            width: 100%;
+            height: 200px;
+            border: none;
+            display: block;
+        }
+
+        .video-info {
+            padding: 16px;
+        }
+
+        .video-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .video-meta {
+            display: flex;
+            justify-content: space-between;
+            color: var(--tg-theme-hint-color, #999999);
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .video-description {
+            color: var(--tg-theme-text-color, #000000);
+            font-size: 14px;
+            line-height: 1.5;
+            opacity: 0.8;
+        }
+
+        .video-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .btn-like {
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        .btn-like.active {
+            background: #FF4D00;
+            color: white;
+        }
+
+        .btn-share {
+            background: var(--tg-theme-button-color, #3390ec);
+            color: var(--tg-theme-button-text-color, #ffffff);
+        }
+
+        .recommendations {
+            margin-top: 24px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            padding: 0 4px;
+        }
+
+        .recommended-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .recommended-video {
+            display: flex;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .recommended-video:active {
+            transform: scale(0.98);
+        }
+
+        .recommended-thumbnail {
+            width: 100px;
+            height: 60px;
+            background: #ddd;
+            border-radius: 8px;
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .recommended-thumbnail::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,77,0,0.2) 0%, rgba(255,77,0,0) 70%);
+        }
+
+        .recommended-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .recommended-info h4 {
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.3;
+            margin-bottom: 4px;
+        }
+
+        .recommended-info p {
+            font-size: 12px;
+            color: var(--tg-theme-hint-color, #999999);
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--tg-theme-bg-color, #ffffff);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px;
+            border-top: 1px solid var(--tg-theme-secondary-bg-color, #f0f0f0);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            color: var(--tg-theme-hint-color, #999999);
+            cursor: pointer;
+        }
+
+        .nav-item.active {
+            color: #FF4D00;
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .main-content {
+            padding-bottom: 70px; /* Space for bottom navigation */
+        }
+
+        /* Loading state */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* For very small screens */
+        @media (max-width: 350px) {
+            .container {
+                padding: 8px;
+            }
+
+            .video-player {
+                height: 180px;
+            }
+
+            .recommended-thumbnail {
+                width: 80px;
+                height: 50px;
+            }
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            .recommended-thumbnail {
+                background: #444;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <svg viewBox="0 0 24 24" fill="#FF4D00">
+                    <path d="M20.5 3h-17A1.5 1.5 0 002 4.5v15A1.5 1.5 0 003.5 21h17a1.5 1.5 0 001.5-1.5v-15A1.5 1.5 0 0020.5 3zM10 15.5V8.5l6 3.5-6 3.5z"/>
+                </svg>
+                <span>Rutube</span>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" id="searchBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                </button>
+                <button class="icon-btn" id="menuBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="video-container">
+                <iframe
+                    src="https://rutube.ru/embed/video/b273c948feaa22ed251ca8e180cd5009/"
+                    class="video-player"
+                    allowfullscreen>
+                </iframe>
+            </div>
+
+            <div class="video-info">
+                <h1 class="video-title">Как создать современный видеоплеер для Telegram Mini App</h1>
+                <div class="video-meta">
+                    <span>15 234 просмотра</span>
+                    <span>2 дня назад</span>
+                </div>
+                <p class="video-description">
+                    В этом видео мы рассмотрим, как создать современный видеоплеер, оптимизированный для Telegram Mini Apps.
+                    Узнаем о лучших практиках верстки, адаптивном дизайне и создании привлекательного интерфейса.
+                </p>
+                <div class="video-actions">
+                    <button class="btn btn-like" id="likeBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                        </svg>
+                        Нравится
+                    </button>
+                    <button class="btn btn-share" id="shareBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/>
+                        </svg>
+                        Поделиться
+                    </button>
+                </div>
+            </div>
+
+            <div class="recommendations">
+                <h3 class="section-title">Рекомендуемые видео</h3>
+                <div class="recommended-list">
+                    <div class="recommended-video">
+                        <div class="recommended-thumbnail"></div>
+                        <div class="recommended-info">
+                            <h4>Основы HTML для начинающих</h4>
+                            <p>WebDev Channel • 45 тыс. просмотров</p>
+                        </div>
+                    </div>
+                    <div class="recommended-video">
+                        <div class="recommended-thumbnail"></div>
+                        <div class="recommended-info">
+                            <h4>CSS Grid: Полное руководство</h4>
+                            <p>Frontend Masters • 32 тыс. просмотров</p>
+                        </div>
+                    </div>
+                    <div class="recommended-video">
+                        <div class="recommended-thumbnail"></div>
+                        <div class="recommended-info">
+                            <h4>JavaScript за 1 час</h4>
+                            <p>Code Academy • 78 тыс. просмотров</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <nav class="bottom-nav">
+            <div class="nav-item active">
+                <div class="nav-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                    </svg>
+                </div>
+                <span>Главная</span>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.66 8L12 2.35 6.34 8C4.78 9.56 4 11.64 4 13.64s.78 4.11 2.34 5.67 3.61 2.35 5.66 2.35 4.1-.79 5.66-2.35S20 15.64 20 13.64 19.22 9.56 17.66 8z"/>
+                    </svg>
+                </div>
+                <span>Подписки</span>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                </div>
+                <span>История</span>
+            </div>
+            <div class="nav-item">
+                <div class="nav-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    </svg>
+                </div>
+                <span>Профиль</span>
+            </div>
+        </nav>
+    </div>
+
+    <script>
+        // Initialize Telegram Web App
+        let tg = window.Telegram.WebApp;
+
+        // Expand the app to full height
+        tg.expand();
+
+        // Set background color to match theme
+        document.body.style.backgroundColor = tg.themeParams.bg_color || '#ffffff';
+
+        // Handle like button
+        const likeBtn = document.getElementById('likeBtn');
+        likeBtn.addEventListener('click', function() {
+            this.classList.toggle('active');
+
+            // Send data to Telegram
+            if (this.classList.contains('active')) {
+                tg.HapticFeedback.impactOccurred('light');
+                tg.sendData(JSON.stringify({action: 'like', videoId: '123456789'}));
+            }
+        });
+
+        // Handle share button
+        const shareBtn = document.getElementById('shareBtn');
+        shareBtn.addEventListener('click', function() {
+            tg.HapticFeedback.impactOccurred('medium');
+
+            // In a real app, you would use tg.shareURL or show a share dialog
+            tg.showPopup({
+                title: 'Поделиться видео',
+                message: 'Ссылка на видео скопирована в буфер обмена',
+                buttons: [{type: 'ok'}]
+            });
+        });
+
+        // Handle search button
+        document.getElementById('searchBtn').addEventListener('click', function() {
+            tg.HapticFeedback.impactOccurred('light');
+            // In a real app, you would implement search functionality
+            tg.showAlert('Функция поиска будет доступна в следующем обновлении');
+        });
+
+        // Handle menu button
+        document.getElementById('menuBtn').addEventListener('click', function() {
+            tg.HapticFeedback.impactOccurred('light');
+            tg.showPopup({
+                title: 'Меню',
+                message: 'Дополнительные опции',
+                buttons: [
+                    {id: 'settings', type: 'default', text: 'Настройки'},
+                    {id: 'about', type: 'default', text: 'О приложении'},
+                    {id: 'close', type: 'cancel', text: 'Закрыть'}
+                ]
+            }, function(buttonId) {
+                if (buttonId === 'settings') {
+                    tg.showAlert('Раздел настроек находится в разработке');
+                } else if (buttonId === 'about') {
+                    tg.showAlert('Rutube Mini App v1.0');
+                }
+            });
+        });
+
+        // Handle bottom navigation
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', function() {
+                navItems.forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+                tg.HapticFeedback.impactOccurred('light');
+            });
+        });
+
+        // Handle recommended video clicks
+        const recommendedVideos = document.querySelectorAll('.recommended-video');
+        recommendedVideos.forEach(video => {
+            video.addEventListener('click', function() {
+                tg.HapticFeedback.impactOccurred('light');
+                // In a real app, you would navigate to the selected video
+                tg.showAlert('Переход к выбранному видео');
+            });
+        });
+
+        // Set theme colors based on Telegram theme
+        function applyTheme() {
+            document.documentElement.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color || '#ffffff');
+            document.documentElement.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color || '#000000');
+            document.documentElement.style.setProperty('--tg-theme-hint-color', tg.themeParams.hint_color || '#999999');
+            document.documentElement.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color || '#3390ec');
+            document.documentElement.style.setProperty('--tg-theme-button-text-color', tg.themeParams.button_text_color || '#ffffff');
+            document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', tg.themeParams.secondary_bg_color || '#f0f0f0');
+        }
+
+        // Apply theme on load
+        applyTheme();
+
+        // Listen for theme changes
+        tg.onEvent('themeChanged', applyTheme);
+    </script>
+</body>
+</html>
